@@ -1,0 +1,17 @@
+name: Auto-Update
+
+on:
+  schedule:
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+
+jobs:
+  autoupdate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Excavator
+        uses: ScoopInstaller/Excavator@main
+        env:
+          SCOOP_HOME: ${{ runner.temp }}\scoop
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
