@@ -11,16 +11,25 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Scoop
-        run: |
-          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-          Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
-      - name: Validate manifests
-        run: |
-          $apps = Get-ChildItem bucket/*.json
-          foreach ($app in $apps) {
-            Write-Host "Validating $($app.Name)..."
-            scoop cat $app.FullName | Out-Null
-            Write-Host "  OK"
-          }
+
+      - name: Validate JSON manifests
         shell: pwsh
+        run: |
+          $failed = $false
+          $manifests = Get-ChildItem bucket/*.json -ErrorAction SilentlyContinue
+          if (-not $manifests) {
+            Write-Host "No manifests found in bucket/"
+            exit 0
+          }
+          foreach ($f in $manifests) {
+            Write-Host "Checking $($f.Name) ..."
+            try {
+              $null = Get-Content $f.FullName -Raw | ConvertFrom-Json -ErrorAction Stop
+              Write-Host "  valid JSON"
+            } catch {
+              Write-Error "  INVALID JSON in $($f.Name): $_"
+              $failed = $true
+            }
+          }
+          if ($failed) { exit 1 }
+          Write-Host "All manifests OK"
